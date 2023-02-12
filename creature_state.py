@@ -1,9 +1,12 @@
 class CreatureState:
 
     def __init__(self):
-        self.is_hungry = 1
-        self.is_thirsty = 1
-        self.is_fleeing = 0
-        self.is_attacking = 0
-        self.is_alive = 1
-        self.is_a_threat = 0  # this is only overruled for Predators in Predator Class
+        self._is_hungry = 1
+        self._is_fleeing = 0
+        self._is_attacking = 0
+        self._is_chasing = 0
+        self._is_alive = 1
+        self._is_to_be_deleted = 0
+        self._is_being_consumed = 0
+        self._is_consuming = 0
+

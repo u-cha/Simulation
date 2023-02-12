@@ -53,45 +53,16 @@ class TurnActions(Actions):
         pass
 
     def entity_make_move(self, worldmap):
-        filteredcoords = list(filter(lambda x: worldmap.worldpopulation[x] is not None, worldmap.worldpopulation))
-        for entitycoords in filteredcoords:
-            entity = worldmap.worldpopulation[entitycoords]
-            entity_name = entity.__class__.__name__
-
-            if entity_name in ('Predator', 'Herbivore'):
-                adjacent_cells = self.__find_adjacent_cells(entity)
-                free_adjacent_cells = self.__filter_free_cells(adjacent_cells, worldmap)
-                if len(free_adjacent_cells) == 0:
-                    pass
-
-                else:
-                    next_cell = choice(free_adjacent_cells)
-                    worldmap.worldpopulation[entitycoords] = None
-                    worldmap.worldpopulation[next_cell] = entity
-                    entity.width, entity.height = next_cell
-
-            # elif
-            #
-            # else:
-            #     pass
+        occupied_coords = self._find_occupied_coords(worldmap)
+        for entity_coords in occupied_coords:
+            entity = worldmap.worldpopulation[entity_coords]
+            entity.make_move(worldmap)
 
     @staticmethod
-    def __find_adjacent_cells(obj):
-        adjacent_cells = []
-        for width in range(obj.width - 1, obj.width + 2):
-            for height in range(obj.height - 1, obj.height + 2):
-                if (width < 0 or height < 0
-                        or width >= gameparams.mapwidth
-                        or height >= gameparams.mapheight
-                        or width == obj.width and height == obj.height):
-                    pass
-                else:
-                    adjacent_cells.append((width, height))
-        return adjacent_cells
+    def _find_occupied_coords(worldmap):
+        occupied_coords = list(filter(lambda x: worldmap.worldpopulation[x] is not None, worldmap.worldpopulation))
+        return occupied_coords
 
-    @staticmethod
-    def __filter_free_cells(cells, worldmap):
-        return list(filter(lambda x: worldmap.worldpopulation[x] == None, cells))
 
 
 """действия, совершаемые каждый ход. Примеры - передвижение существ,

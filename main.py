@@ -41,7 +41,8 @@ class Simulation:
             count_predators = len(list(filter(lambda x: self.worldpopulation[x].__class__.__name__ == 'Predator', self.worldpopulation)))
             count_herbivores = len(list(filter(lambda x: self.worldpopulation[x].__class__.__name__ == 'Herbivore', self.worldpopulation)))
             return count_predators, count_herbivores
-        #TODO предусмотреть обновление этого счетчика после каждого хода
+        #TODO починить счетчик
+        # предусмотреть обновление этого счетчика после каждого хода
 
 
 
