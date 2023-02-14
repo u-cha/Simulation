@@ -4,8 +4,8 @@ class GameParameters:
     maparea = mapwidth * mapheight
 
     # is used to regulate map population
-    entities = {'Water': int(0.1 * maparea), 'Grass': int(0.1 * maparea), 'Obstacle': int(0.1 * maparea),
-                'Herbivore': 5, 'Predator': 5}
+    entities = {'Water': int(0.1 * maparea), 'Grass': int(0.01 * maparea), 'Obstacle': int(0.1 * maparea),
+                'Herbivore': 1, 'Predator': 1}
 
     # is used to trigger map refill
     entities_min_threshold = {'Water': int(entities['Water'] * 0.5),

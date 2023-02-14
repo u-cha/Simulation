@@ -3,22 +3,21 @@ from os import system as os
 from platform import system as platform
 from time import sleep
 
-import actions
+
 from tkinter import *
 from tkinter import ttk
 
 from gameparameters import GameParameters as gameparams
-import entity as entityclasses
+from actions import Actions
 
 
 class Simulation:
-
 
     def __init__ (self, *args, **kwargs):
         self.worldmap = Simulation.Map(gameparams.mapwidth, gameparams.mapheight)
         self.renderer = Simulation.Renderer()
         self.counter = Simulation.Counter()
-        self.actions = actions.Actions()
+        self.actions = Actions()
 
 
     class Map:
@@ -41,6 +40,8 @@ class Simulation:
             count_predators = len(list(filter(lambda x: self.worldpopulation[x].__class__.__name__ == 'Predator', self.worldpopulation)))
             count_herbivores = len(list(filter(lambda x: self.worldpopulation[x].__class__.__name__ == 'Herbivore', self.worldpopulation)))
             return count_predators, count_herbivores
+
+
         #TODO починить счетчик
         # предусмотреть обновление этого счетчика после каждого хода
 
@@ -85,19 +86,19 @@ class Simulation:
             window.mainloop()
 
     def start_simulation(self):
+        """startSimulation() - запустить бесконечный цикл симуляции и рендеринга"""
         start_actions = [getattr(self.actions.initactions, action) for action in self.actions.initactionslist]
         for action in start_actions:
-            action(gameparams.entities, entityclasses, self.worldmap)
+            action(gameparams.entities, self.worldmap)
+        self.renderer.render(game.worldmap)
 
-        # self.renderer.render(self.worldmap)
-        """startSimulation() - запустить бесконечный цикл симуляции и рендеринга"""
-        pass
 
     def make_a_turn(self):
         """nextTurn() - просимулировать и отрендерить один ход"""
         turnactions = [getattr(self.actions.turnactions, action) for action in self.actions.turnactionsdict]
         for action in turnactions:
             action(self.worldmap)
+        self.renderer.render(game.worldmap)
 
     def pause_simulation(self):
         """pauseSimulation() - приостановить бесконечный цикл симуляции и рендеринга"""
@@ -108,12 +109,12 @@ if __name__ == '__main__':
 
     game = Simulation()
     game.start_simulation()
-    game.renderer.render(game.worldmap)
+
     print()
     for i in range(100):
         game.make_a_turn()
-        sleep(.3)
-        game.renderer.render(game.worldmap)
+        sleep(1)
+
 
 
 

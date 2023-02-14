@@ -1,5 +1,7 @@
 from random import randint, choice
 from gameparameters import GameParameters as gameparams
+import entity
+
 
 
 class Actions:
@@ -8,6 +10,7 @@ class Actions:
         self.initactions = InitActions()
         self.turnactions = TurnActions()
         self.initactionslist = ['inhabit_map']
+        # , 'update_map_stats']
         # 'place_entities': self.init_actions.create_entities}
         self.turnactionsdict = ['entity_make_move']
         # ['check_creature_state', 'set_creature_state',
@@ -19,11 +22,11 @@ class InitActions(Actions):
     def __init__(self):
         pass
 
-    def create_entities(self, entitiesdic, entitiesclass):
+    def create_entities(self, entitiesdic):
         entitieslist = []
-        for entity, number in entitiesdic.items():
+        for entityname, number in entitiesdic.items():
             for _ in range(number):
-                obj = entitiesclass.__dict__[entity]()
+                obj = entity.__dict__[entityname]()
                 entitieslist.append(obj)
         return entitieslist
 
@@ -42,9 +45,12 @@ class InitActions(Actions):
             worldmap.worldpopulation[width, height].width = width
             worldmap.worldpopulation[width, height].height = height
 
-    def inhabit_map(self, entitiesdic, entititiesclass, worldmap):
-        entitieslist = self.create_entities(entitiesdic, entititiesclass)
+    def inhabit_map(self, entitiesdic, worldmap):
+        entitieslist = self.create_entities(entitiesdic)
         self.place_entities_on_map(worldmap, entitieslist)
+
+    # def update_map_stats(self, *args):
+    #     self.worldmap.count_predators, self.worldmap.count_herbivores = self.worldmap.__count_preds_and_herbs()
 
 
 class TurnActions(Actions):
@@ -53,15 +59,16 @@ class TurnActions(Actions):
         pass
 
     def entity_make_move(self, worldmap):
-        occupied_coords = self._find_occupied_coords(worldmap)
-        for entity_coords in occupied_coords:
+        populated_coords = self._find_populated_coords(worldmap)
+        for entity_coords in populated_coords:
             entity = worldmap.worldpopulation[entity_coords]
             entity.make_move(worldmap)
 
     @staticmethod
-    def _find_occupied_coords(worldmap):
-        occupied_coords = list(filter(lambda x: worldmap.worldpopulation[x] is not None, worldmap.worldpopulation))
-        return occupied_coords
+    def _find_populated_coords(worldmap):
+        populated_coords = list(filter(lambda x: worldmap.worldpopulation[x] is not None, worldmap.worldpopulation))
+        return populated_coords
+
 
 
 

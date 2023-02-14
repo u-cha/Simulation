@@ -7,7 +7,6 @@ class Entity:
     collection = {}
 
     def __init__(self):
-        self._is_edible = 1  # this is only overrided in Obstacle subclass which is considered inedible
         if len(self.collection) > 0:
             entityrole = choice(list(self.collection.keys()))
             setattr(self, '_role', entityrole)
@@ -19,17 +18,27 @@ class Entity:
     def __repr__(self):
         if getattr(self, '_role', None):
             return f'{self._role[:4]}'
-        return 'class Entity'
 
-    def _find_adjacent_cells(self, searchradius=1, *args):
+
+    def _find_adjacent_cells(self, coordinates: tuple = None,  searchradius=1, *args):
+        """This function looks for adjacent cells, starting from the position of self or (if given)
+        starting from the coordinates position.
+        Basically it returns adjacent cells within 1 cell radius, but this can be changed
+        if another radius is provided"""
+
+        if coordinates:
+            width_pos, height_pos = coordinates[0], coordinates[1]
+        else:
+            width_pos, height_pos = self.width, self.height
+
         adjacent_cells = []
         already_visited_cells = []
-        for width in range(self.width - searchradius, self.width + searchradius + 1):
-            for height in range(self.height - searchradius, self.height + searchradius + 1):
+        for width in range(width_pos - searchradius, width_pos + searchradius + 1):
+            for height in range(height_pos - searchradius, height_pos + searchradius + 1):
                 if (width < 0 or height < 0
                         or width >= gameparams.mapwidth
                         or height >= gameparams.mapheight
-                        or width == self.width and height == self.height
+                        or width == width_pos and height == height_pos
                         or (width, height) in already_visited_cells):
                     pass
                 else:
@@ -38,7 +47,7 @@ class Entity:
         return adjacent_cells
 
     @staticmethod
-    def _filter_free_cells(cells, worldmap):
+    def _filter_empty_cells(cells, worldmap):
         return list(filter(lambda x: worldmap.worldpopulation[x] is None, cells))
 
     def _end_existence(self):
@@ -51,7 +60,7 @@ class Obstacle(Entity):
 
     def __init__(self):
         super().__init__()
-        self.is_edible = 0
+
 
     def make_move(self, *args):
         pass
@@ -98,13 +107,11 @@ class Creature(Entity):
         self.is_alive = 0
 
     def make_move(self, worldmap):
-        if self.creature_state._is_to_be_deleted:
+        if self.creature_state._is_to_be_deleted or self.creature_state._is_under_attack:
             pass
         else:
             if self.creature_state._is_alive:
-                if self.creature_state._is_fleeing:
-                    self._make_escape_move()
-                elif not self.creature_state._is_hungry:
+                if self.creature_state._is_hungry:
                     self._make_foodhunt_move(worldmap)
                 else:
                     self._make_free_move(worldmap)
@@ -112,10 +119,11 @@ class Creature(Entity):
                 if self.creature_state._is_being_consumed and self._food_value > 0:
                     self._food_value -= 1
                 else:
-                    self._end_to_exist()
+                    self._end_existence()
+
 
     def _make_free_move(self, worldmap):
-        free_adjacent_cells = self._filter_free_cells(self._find_adjacent_cells(), worldmap)
+        free_adjacent_cells = self._filter_empty_cells(self._find_adjacent_cells(), worldmap)
         if len(free_adjacent_cells) == 0:
             pass
 
@@ -126,16 +134,24 @@ class Creature(Entity):
             self.width, self.height = next_cell
 
 
-    def _make_escape_move(self):
-        pass
 
     def _make_foodhunt_move(self, worldmap):
-        target_cell = self._find_cell_with_food(self, worldmap)
-        if target_cell is None:
-            self._make_free_move(self, worldmap)
+        target_cell = self._find_cell_with_food(worldmap)
+        if target_cell:
+            if target_cell in self._find_adjacent_cells():
+                target = worldmap.worldpopulation[target_cell]
+                if hasattr(target, 'creature_state') and target.creature_state._is_alive == 1:
+                    self.attack(target_cell, worldmap)
+                else:
+                    self.consume(target_cell)
+            else:
+                next_cell = self._find_next_cell_using_bfs(target_cell, worldmap)
+                worldmap.worldpopulation[self.width, self.height] = None
+                worldmap.worldpopulation[next_cell] = self
+                self.width, self.height = next_cell
         else:
-            next_cell = self._find_next_cell_with_bfs(self, target_cell, worldmap)
-            # make_targeted_move
+            self._make_free_move(worldmap)
+
 
     def _find_cell_with_food(self, worldmap):
         for search_radius in range(1, self._vision_radius + 1):
@@ -147,13 +163,50 @@ class Creature(Entity):
             return None
 
 
+    def _find_next_cell_using_bfs(self, targetcell, worldmap):
+        start_cell = parent_cell = self.width, self.height
+        distance = 0
+        search_queue = {start_cell: {'distance_from_start': distance, 'parent': parent_cell}}
+        visited_cells = {}
+
+        while len(search_queue) > 0:
+            if targetcell in search_queue:
+                visited_cells[targetcell] = {'distance_from_start': distance, 'parent': parent_cell}
+                search_queue.clear()
+            else:
+                new_search_scope = {}
+                distance += 1
+                for cell in search_queue:
+                    visited_cells[cell] = search_queue[cell]
+                    parent_cell = cell
+                    adjacent_cells = self._find_adjacent_cells(cell)
+                    if targetcell in adjacent_cells:
+                        visited_cells[targetcell] = {'distance_from_start': distance, 'parent': parent_cell}
+                        new_search_scope = {}
+                        break
+
+                    filtered_adjacent_cells = self._filter_empty_cells(adjacent_cells, worldmap)
+                    new_cells_to_visit = list(
+                        filter(lambda x: x not in visited_cells and x not in search_queue, filtered_adjacent_cells))
+                    new_search_scope.update({new_cell: {'distance_from_start': distance, 'parent': parent_cell} for new_cell in
+                                             new_cells_to_visit})
+                search_queue.clear()
+                search_queue.update(new_search_scope)
+
+        else:
+            current_cell = targetcell
+            previous_cell_on_route = visited_cells[current_cell]['parent']
+            while previous_cell_on_route != start_cell:
+                current_cell = previous_cell_on_route
+                previous_cell_on_route = visited_cells[current_cell]['parent']
+            else:
+                next_cell_using_bfs = current_cell
+                return next_cell_using_bfs
+
     def die(self):
         pass
 
-    def consume(self):
-        pass
-
-    def decide_what_to_do(self):
+    def consume(self, target_cell):
         pass
 
 
@@ -172,8 +225,10 @@ class Herbivore(Creature):
     def __init__(self):
         super().__init__()
 
-
-
+    def __repr__(self):
+        if getattr(self, '_role', None):
+            return f'\033[31m{self._role[:4]}\033[0m'
+        return 'class Entity'
 
 
 
@@ -187,15 +242,27 @@ class Predator(Creature):
     """
     collection = {'Tiger':
                       {'_speed': 6, '_maxhp': 500, '_attack_power': 10,
-                       '_vision_radius': 5, '_food_value': 10, '_food_type': 'Herbivore'},
+                       '_vision_radius': 100, '_food_value': 10, '_food_type': 'Herbivore'},
                   'Lion':
                       {'_speed': 4, '_maxhp': 700, '_attack_power': 10,
-                       '_vision_radius': 7, '_food_value': 10, '_food_type': 'Herbivore'}}
+                       '_vision_radius': 100, '_food_value': 10, '_food_type': 'Herbivore'}}
 
     def __init__(self):
         super().__init__()
         self._is_a_threat = 1
 
-    def attack(self):
+    def attack(self, target_cell, worldmap):
+
+        target = worldmap.worldpopulation[target_cell]
+        if not target.creature_state._is_under_attack:
+            target.creature_state._is_under_attack = 1
+        target._hp -= self._attack_power
+        print(f'{self._role} attacks!')
+
         pass
+
+    def __repr__(self):
+        if getattr(self, '_role', None):
+            return f'\033[32m{self._role[:4]}\033[0m'
+        return 'class Entity'
 
