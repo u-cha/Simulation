@@ -7,6 +7,7 @@ class Entity:
     collection = {}
 
     def __init__(self):
+        self._is_to_be_deleted = 0
         if len(self.collection) > 0:
             entityrole = choice(list(self.collection.keys()))
             setattr(self, '_role', entityrole)
@@ -14,10 +15,17 @@ class Entity:
                 setattr(self, attribute, self.collection[entityrole][attribute])
             if getattr(self, '_maxhp', None):
                 self._hp = self._maxhp
+            else:
+                self._hp = 0000
 
     def __repr__(self):
         if getattr(self, '_role', None):
-            return f'{self._role[:4]}'
+            return f'{self._role[:4]}, {self._hp}, {round(self._food_value)}'
+
+    def entity_update_self_status(self):
+        if hasattr(self, '_food_value') and self._food_value == 0 and self._hp == 0:
+            self._is_to_be_deleted = 1
+
 
 
     def _find_adjacent_cells(self, coordinates: tuple = None,  searchradius=1, *args):
@@ -55,8 +63,8 @@ class Entity:
 
 
 class Obstacle(Entity):
-    collection = {'Rock': {'_maxhp': 1000},
-                  'Log': {'_maxhp': 1000}}
+    collection = {'Rock': {'_maxhp': 1000, '_food_value': 0},
+                  'Log': {'_maxhp': 1000, '_food_value': 0}}
 
     def __init__(self):
         super().__init__()
@@ -67,7 +75,7 @@ class Obstacle(Entity):
 
 
 class Water(Entity):
-    collection = {'Water': {'_drink_value': 100}}
+    collection = {'Water': {'_food_value': 100}}
 
     def __init__(self):
         super().__init__()
@@ -77,17 +85,15 @@ class Water(Entity):
 
 
 class Grass(Entity):
-    collection = {'Grass': {'_food_value': 15}}
+    collection = {'Grass': {'_max_food_value': 1, '_growthtempo': 0.2}}
 
     def __init__(self):
         super().__init__()
-        self._is_being_consumed = 0
+        self._food_value = self._max_food_value
 
     def make_move(self, *args):
-        if self._is_being_consumed:
-            self._food_value -= 1
-        if self._food_value <= 0:
-            self._end_existence()
+        if self._food_value < self._max_food_value:
+            self._food_value += self._growthtempo
 
 
 class Creature(Entity):
@@ -106,20 +112,18 @@ class Creature(Entity):
     def __die(self):
         self.is_alive = 0
 
+
     def make_move(self, worldmap):
-        if self.creature_state._is_to_be_deleted or self.creature_state._is_under_attack:
+        if not self.creature_state._is_alive or self.creature_state._is_under_attack:
             pass
         else:
-            if self.creature_state._is_alive:
-                if self.creature_state._is_hungry:
-                    self._make_foodhunt_move(worldmap)
-                else:
-                    self._make_free_move(worldmap)
+            if self.creature_state._is_hungry:
+                self._make_foodhunt_move(worldmap)
             else:
-                if self.creature_state._is_being_consumed and self._food_value > 0:
-                    self._food_value -= 1
-                else:
-                    self._end_existence()
+                self.creature_state.hungertimer.tick()
+                if self.creature_state.hungertimer.timer == 10:
+                    self.creature_state._is_hungry = 1
+                self._make_free_move(worldmap)
 
 
     def _make_free_move(self, worldmap):
@@ -134,7 +138,6 @@ class Creature(Entity):
             self.width, self.height = next_cell
 
 
-
     def _make_foodhunt_move(self, worldmap):
         target_cell = self._find_cell_with_food(worldmap)
         if target_cell:
@@ -142,8 +145,10 @@ class Creature(Entity):
                 target = worldmap.worldpopulation[target_cell]
                 if hasattr(target, 'creature_state') and target.creature_state._is_alive == 1:
                     self.attack(target_cell, worldmap)
+                elif hasattr(target, 'creature_state') and target.creature_state._is_alive ==0:
+                    self.consume(target_cell, worldmap)
                 else:
-                    self.consume(target_cell)
+                    self.consume(target_cell, worldmap)
             else:
                 next_cell = self._find_next_cell_using_bfs(target_cell, worldmap)
                 worldmap.worldpopulation[self.width, self.height] = None
@@ -195,20 +200,17 @@ class Creature(Entity):
 
         else:
             current_cell = targetcell
-            previous_cell_on_route = visited_cells[current_cell]['parent']
+            try:
+                previous_cell_on_route = visited_cells[current_cell]['parent']
+            except:
+                print(current_cell, targetcell, start_cell, visited_cells[current_cell]['parent'])
+            # выдает ошибку иногда
             while previous_cell_on_route != start_cell:
                 current_cell = previous_cell_on_route
                 previous_cell_on_route = visited_cells[current_cell]['parent']
             else:
                 next_cell_using_bfs = current_cell
                 return next_cell_using_bfs
-
-    def die(self):
-        pass
-
-    def consume(self, target_cell):
-        pass
-
 
 
 class Herbivore(Creature):
@@ -224,11 +226,24 @@ class Herbivore(Creature):
 
     def __init__(self):
         super().__init__()
+        self._hp = self._maxhp
 
     def __repr__(self):
         if getattr(self, '_role', None):
-            return f'\033[31m{self._role[:4]}\033[0m'
-        return 'class Entity'
+            return f'\033[31m{self._role[:4]}, {self._hp}, {self._food_value}\033[0m'
+
+    def consume(self, target_cell, worldmap):
+        target = worldmap.worldpopulation[target_cell]
+
+        if target._food_value - 1 >= 0:
+            target._food_value -= 1
+        else:
+            target._food_value = 0
+            target._is_to_be_deleted = 1
+
+        if self._hp < self._maxhp:
+            self._hp += 1
+
 
 
 
@@ -242,27 +257,32 @@ class Predator(Creature):
     """
     collection = {'Tiger':
                       {'_speed': 6, '_maxhp': 500, '_attack_power': 10,
-                       '_vision_radius': 100, '_food_value': 10, '_food_type': 'Herbivore'},
+                       '_vision_radius': 10, '_food_value': 10, '_food_type': 'Herbivore'},
                   'Lion':
                       {'_speed': 4, '_maxhp': 700, '_attack_power': 10,
-                       '_vision_radius': 100, '_food_value': 10, '_food_type': 'Herbivore'}}
+                       '_vision_radius': 10, '_food_value': 10, '_food_type': 'Herbivore'}}
 
     def __init__(self):
         super().__init__()
-        self._is_a_threat = 1
+
 
     def attack(self, target_cell, worldmap):
-
         target = worldmap.worldpopulation[target_cell]
         if not target.creature_state._is_under_attack:
             target.creature_state._is_under_attack = 1
-        target._hp -= self._attack_power
-        print(f'{self._role} attacks!')
+        if target._hp > 0:
+            target._hp -= self._attack_power
+        if target._hp<= 0:
+            target.creature_state._is_alive = 0
 
-        pass
 
     def __repr__(self):
         if getattr(self, '_role', None):
-            return f'\033[32m{self._role[:4]}\033[0m'
-        return 'class Entity'
+            return f'\033[32m{self._role[:4]}, {self._hp}, {self.creature_state._is_hungry}\033[0m'
+
+    def consume(self, target_cell, worldmap):
+        target = worldmap.worldpopulation[target_cell]
+        target._food_value = 0
+        self.creature_state._is_hungry = 0
+        self.creature_state.hungertimer.timer = 0
 

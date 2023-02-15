@@ -14,7 +14,7 @@ from actions import Actions
 class Simulation:
 
     def __init__ (self, *args, **kwargs):
-        self.worldmap = Simulation.Map(gameparams.mapwidth, gameparams.mapheight)
+        self.worldmap = Simulation.Map(gameparams.mapwidth, gameparams.mapheight, gameparams.entities)
         self.renderer = Simulation.Renderer()
         self.counter = Simulation.Counter()
         self.actions = Actions()
@@ -26,8 +26,8 @@ class Simulation:
             self.mapwidth = mapwidth
             self.mapheight = mapheight
             self.worldpopulation = self.__form_free_cells()
-            self.count_predators, self.count_herbivores = self.__count_preds_and_herbs()
-
+            for entityname in gameparams.entities.keys():
+                setattr(self, f'count_entities.{entityname}', 0)
 
         def __form_free_cells(self):
             worldfreecells = {}
@@ -57,7 +57,7 @@ class Simulation:
 
     class Renderer:
 
-        def render(self, map):
+        def render(self, map, gameparams):
             clear = lambda: os('cls') if platform() == 'Windows' else os('clear')
             clear()
             for width in range(map.mapwidth):
@@ -67,7 +67,11 @@ class Simulation:
                 print()
 
             print('\n' * 3)
-            print(f'Herbs {map.count_herbivores} , Predators {map.count_predators}')
+
+            for entityname in gameparams.entities.keys():
+                num = getattr(map, f'count_entities.{entityname}')
+                print(f'{entityname}: {num}')
+            print(f'COUNTER: {game.counter.counter_current_state}')
 
         def render_gui(self, map):
             window = Tk()
@@ -89,16 +93,16 @@ class Simulation:
         """startSimulation() - запустить бесконечный цикл симуляции и рендеринга"""
         start_actions = [getattr(self.actions.initactions, action) for action in self.actions.initactionslist]
         for action in start_actions:
-            action(gameparams.entities, self.worldmap)
-        self.renderer.render(game.worldmap)
+            action(gameparams, self.worldmap)
+        self.renderer.render(game.worldmap, gameparams)
 
 
     def make_a_turn(self):
         """nextTurn() - просимулировать и отрендерить один ход"""
         turnactions = [getattr(self.actions.turnactions, action) for action in self.actions.turnactionsdict]
         for action in turnactions:
-            action(self.worldmap)
-        self.renderer.render(game.worldmap)
+            action(gameparams, self.worldmap)
+        self.renderer.render(game.worldmap, gameparams)
 
     def pause_simulation(self):
         """pauseSimulation() - приостановить бесконечный цикл симуляции и рендеринга"""
@@ -111,18 +115,6 @@ if __name__ == '__main__':
     game.start_simulation()
 
     print()
-    for i in range(100):
+    for i in range(10000):
         game.make_a_turn()
-        sleep(1)
-
-
-
-
-
-
-
-
-
-
-
-
+        # sleep(.1)
