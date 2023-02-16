@@ -20,7 +20,7 @@ class Entity:
 
     def __repr__(self):
         if getattr(self, '_role', None):
-            return f'{self._role[:4]}, {self._hp}, {round(self._food_value)}'
+            return f'{self._role[:2]}'
 
     def entity_update_self_status(self):
         if hasattr(self, '_food_value') and self._food_value == 0 and self._hp == 0:
@@ -73,6 +73,9 @@ class Obstacle(Entity):
     def make_move(self, *args):
         pass
 
+    def __repr__(self):
+        if getattr(self, '_role', None):
+            return f'\033[3;36;40m  \033[0;0;0m'
 
 class Water(Entity):
     collection = {'Water': {'_food_value': 100}}
@@ -82,6 +85,9 @@ class Water(Entity):
 
     def make_move(self, *args):
         pass
+
+    def __repr__(self):
+        return f'\033[3;36;44m  \033[0;0;0m'
 
 
 class Grass(Entity):
@@ -95,6 +101,8 @@ class Grass(Entity):
         if self._food_value < self._max_food_value:
             self._food_value += self._growthtempo
 
+    def __repr__(self):
+        return f'\033[3;36;42m  \033[0;0;0m'
 
 class Creature(Entity):
 
@@ -151,9 +159,10 @@ class Creature(Entity):
                     self.consume(target_cell, worldmap)
             else:
                 next_cell = self._find_next_cell_using_bfs(target_cell, worldmap)
-                worldmap.worldpopulation[self.width, self.height] = None
-                worldmap.worldpopulation[next_cell] = self
-                self.width, self.height = next_cell
+                if next_cell:
+                    worldmap.worldpopulation[self.width, self.height] = None
+                    worldmap.worldpopulation[next_cell] = self
+                    self.width, self.height = next_cell
         else:
             self._make_free_move(worldmap)
 
@@ -199,18 +208,17 @@ class Creature(Entity):
                 search_queue.update(new_search_scope)
 
         else:
-            current_cell = targetcell
-            try:
+            if targetcell in visited_cells:
+                current_cell = targetcell
                 previous_cell_on_route = visited_cells[current_cell]['parent']
-            except:
-                print(current_cell, targetcell, start_cell, visited_cells[current_cell]['parent'])
-            # выдает ошибку иногда
-            while previous_cell_on_route != start_cell:
-                current_cell = previous_cell_on_route
-                previous_cell_on_route = visited_cells[current_cell]['parent']
+                while previous_cell_on_route != start_cell:
+                    current_cell = previous_cell_on_route
+                    previous_cell_on_route = visited_cells[current_cell]['parent']
+                else:
+                    next_cell_using_bfs = current_cell
+                    return next_cell_using_bfs
             else:
-                next_cell_using_bfs = current_cell
-                return next_cell_using_bfs
+                return None
 
 
 class Herbivore(Creature):
@@ -230,7 +238,7 @@ class Herbivore(Creature):
 
     def __repr__(self):
         if getattr(self, '_role', None):
-            return f'\033[31m{self._role[:4]}, {self._hp}, {self._food_value}\033[0m'
+            return f'\033[3;36;43m{self._role[:2]}\033[0;0;0m'
 
     def consume(self, target_cell, worldmap):
         target = worldmap.worldpopulation[target_cell]
@@ -278,8 +286,9 @@ class Predator(Creature):
 
     def __repr__(self):
         if getattr(self, '_role', None):
-            return f'\033[32m{self._role[:4]}, {self._hp}, {self.creature_state._is_hungry}\033[0m'
-
+            if self.creature_state._is_hungry:
+                return f'\033[1;41;31m{self._role[:2]}\033[0;0;0m'
+            return f'\033[2;41;37m  \033[0;0;0m'
     def consume(self, target_cell, worldmap):
         target = worldmap.worldpopulation[target_cell]
         target._food_value = 0

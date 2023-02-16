@@ -2,7 +2,9 @@ from random import randint, choice
 from os import system as os
 from platform import system as platform
 from time import sleep
+import threading
 
+import keyboard
 
 from tkinter import *
 from tkinter import ttk
@@ -63,7 +65,7 @@ class Simulation:
             for width in range(map.mapwidth):
                 for height in range(map.mapheight):
                     image = map.worldpopulation.get((width, height))
-                    print('    ' if image is None else image, end=' ')
+                    print('\033[;;47m  \033[0;0;m' if image is None else image, end='')
                 print()
 
             print('\n' * 3)
@@ -105,16 +107,53 @@ class Simulation:
         self.renderer.render(game.worldmap, gameparams)
 
     def pause_simulation(self):
-        """pauseSimulation() - приостановить бесконечный цикл симуляции и рендеринга"""
-        pass
-
+        global game_is_running
+        while environment_is_running:
+            if keyboard.is_pressed('c'):
+                if main_is_running:
+                    main_is_running.clear()
+            if keyboard.is_pressed('f'):
+                main_is_running.set()
+            if keyboard.is_pressed('l'):
+                main_is_running.set()
+                environment_is_running = False
+        else:
+            pass
 
 if __name__ == '__main__':
 
+    def turn_the_game():
+        while game_is_running:
+            game_unpaused.wait()
+            game.make_a_turn()
+        else:
+            print('\nСпасибо за игру')
+
+
+    def listener():
+        global game_is_running
+        while game_is_running:
+            if keyboard.is_pressed('c'):
+                game_unpaused.clear()
+            if keyboard.is_pressed('f'):
+                game_unpaused.set()
+            if keyboard.is_pressed('l'):
+                game_unpaused.set()
+                game_is_running = False
+
+
     game = Simulation()
     game.start_simulation()
+    game_is_running = True
 
-    print()
-    for i in range(10000):
-        game.make_a_turn()
-        # sleep(.1)
+    game_unpaused = threading.Event()
+    game_unpaused.set()
+
+    major_thread = threading.Thread(target=turn_the_game)
+    listener_thread = threading.Thread(target=listener)
+
+    listener_thread.start()
+    major_thread.start()
+
+
+

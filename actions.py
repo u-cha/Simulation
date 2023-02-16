@@ -9,8 +9,8 @@ class Actions:
         self.initactions = InitActions()
         self.turnactions = TurnActions()
         self.initactionslist = ['inhabit_map', 'update_map_stats']
-        self.turnactionsdict = ['entity_update_self_status',
-                                'clear_redundant_entities', 'spawn_new_entities', 'entity_make_move', 'update_map_stats']
+        self.turnactionsdict = ['entity_make_move', 'entity_update_self_status',
+                                'clear_redundant_entities', 'spawn_new_entities', 'update_map_stats']
 
 
 class InitActions(Actions):
