@@ -143,6 +143,8 @@ class Creature(Entity):
             next_cell = choice(free_adjacent_cells)
             worldmap.worldpopulation[self.width, self.height] = None
             worldmap.worldpopulation[next_cell] = self
+            worldmap.cells_to_redraw.append(next_cell)
+            worldmap.cells_to_redraw.append((self.width, self.height))
             self.width, self.height = next_cell
 
 
@@ -162,6 +164,8 @@ class Creature(Entity):
                 if next_cell:
                     worldmap.worldpopulation[self.width, self.height] = None
                     worldmap.worldpopulation[next_cell] = self
+                    worldmap.cells_to_redraw.append(next_cell)
+                    worldmap.cells_to_redraw.append((self.width, self.height))
                     self.width, self.height = next_cell
         else:
             self._make_free_move(worldmap)
@@ -183,7 +187,7 @@ class Creature(Entity):
         search_queue = {start_cell: {'distance_from_start': distance, 'parent': parent_cell}}
         visited_cells = {}
 
-        while len(search_queue) > 0:
+        while len(search_queue) > 0 and distance < 10:
             if targetcell in search_queue:
                 visited_cells[targetcell] = {'distance_from_start': distance, 'parent': parent_cell}
                 search_queue.clear()
@@ -248,6 +252,7 @@ class Herbivore(Creature):
         else:
             target._food_value = 0
             target._is_to_be_deleted = 1
+
 
         if self._hp < self._maxhp:
             self._hp += 1

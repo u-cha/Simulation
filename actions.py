@@ -77,6 +77,7 @@ class TurnActions(Actions):
         for cell, entity in worldmap.worldpopulation.items():
             if getattr(entity, '_is_to_be_deleted', 0) == 1:
                 worldmap.worldpopulation[cell] = None
+                worldmap.cells_to_redraw.append(cell)
 
     def create_additional_entities(self, entittiesdic, entities_min_threshold, worldmap):
         entitieslist = []
@@ -103,6 +104,7 @@ class TurnActions(Actions):
             worldmap.worldpopulation[width, height] = entity
             worldmap.worldpopulation[width, height].width = width
             worldmap.worldpopulation[width, height].height = height
+            worldmap.cells_to_redraw.append((width, height))
 
     def choose_random_free_coordinates_on_map(self, worldmap):
         width = 0
