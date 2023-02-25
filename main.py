@@ -20,6 +20,9 @@ class Simulation:
         self.renderer = Simulation.Renderer()
         self.counter = Simulation.Counter()
         self.actions = Actions()
+        self.on_pause = True
+
+
 
 
     class Map:
@@ -62,25 +65,35 @@ class Simulation:
         colordict = {'NoneType':'white', 'Grass':'green', 'Obstacle':'black',
                      'Water':'blue', 'Herbivore':'yellow', 'Predator':'red'}
         widgetsdict = {}
+        def __init__(self, *args) -> None:
+            self.window = Tk()
+            self.window.title('Simulation')
 
+        # def render(self, map, gameparams):
+        #     clear = lambda: os('cls') if platform() == 'Windows' else os('clear')
+        #     clear()
+        #     for width in range(map.mapwidth):
+        #         for height in range(map.mapheight):
+        #             image = map.worldpopulation.get((width, height))
+        #             print('\033[;;47m  \033[0;0;m' if image is None else image, end='')
+        #         print()
+        #
+        #     print('\n' * 3)
+        #
+        #     for entityname in gameparams.entities.keys():
+        #         num = getattr(map, f'count_entities.{entityname}')
+        #         print(f'{entityname}: {num}')
+        #     print(f'COUNTER: {game.counter.counter_current_state}')
 
-        def render(self, map, gameparams):
-            clear = lambda: os('cls') if platform() == 'Windows' else os('clear')
-            clear()
-            for width in range(map.mapwidth):
-                for height in range(map.mapheight):
-                    image = map.worldpopulation.get((width, height))
-                    print('\033[;;47m  \033[0;0;m' if image is None else image, end='')
-                print()
+        def update(self):
 
-            print('\n' * 3)
-
-            for entityname in gameparams.entities.keys():
-                num = getattr(map, f'count_entities.{entityname}')
-                print(f'{entityname}: {num}')
-            print(f'COUNTER: {game.counter.counter_current_state}')
+            # game.make_a_turn()
+            self.window.update()
+            self.window.after(500, self.update)
 
         def render_gui_initial(self, map, gameparams):
+            mainframe = ttk.Frame(self.window, padding=30)
+            mainframe.grid(column=0, row=0)
 
             for width in range(map.mapwidth):
                 for height in range(map.mapheight):
@@ -90,17 +103,16 @@ class Simulation:
                     widget.grid(column=width, row=height)
                     self.widgetsdict.update({(width, height): widget})
 
-            buttonframe = ttk.Frame(window, padding=30)
+            buttonframe = ttk.Frame(self.window, padding=30)
             buttonframe.grid(column=0, row=1)
-            button = ttk.Button(buttonframe, text='Play').grid(column=gameparams.mapwidth//2,row=0)
-
+            button = ttk.Button(buttonframe, text='Play', command=game.make_a_turn).grid(column=gameparams.mapwidth//2,row=0)
+            self.update()
+            self.window.mainloop()
         def render_gui_update(self, map, gameparams):
             for i in range(len(map.cells_to_redraw)):
                 width, height = map.cells_to_redraw.pop()
                 obj = map.worldpopulation[(width, height)]
                 self.widgetsdict[(width, height)].configure(background=self.colordict[obj.__class__.__name__])
-
-
 
 
     def start_simulation(self):
@@ -109,6 +121,8 @@ class Simulation:
         for action in start_actions:
             action(gameparams, self.worldmap)
         self.renderer.render_gui_initial(game.worldmap, gameparams)
+        if not self.on_pause:
+            self.make_a_turn()
 
 
     def make_a_turn(self):
@@ -119,35 +133,12 @@ class Simulation:
         self.renderer.render_gui_update(game.worldmap, gameparams)
 
     def pause_simulation(self):
-        global game_is_running
-        while environment_is_running:
-            if keyboard.is_pressed('c'):
-                if main_is_running:
-                    main_is_running.clear()
-            if keyboard.is_pressed('f'):
-                main_is_running.set()
-            if keyboard.is_pressed('l'):
-                main_is_running.set()
-                environment_is_running = False
-        else:
+
             pass
 
 if __name__ == '__main__':
-    def update():
-        game.make_a_turn()
-        window.update()
-        window.after(500, update)
-
-    window = Tk()
-    window.title('Simulation')
-    mainframe = ttk.Frame(window, padding=30)
-    mainframe.grid(column=0, row=0)
-    colordict = {'Grass': 'green', 'Obstacle': 'grey', 'Water': 'blue',
-                 'Predator': 'red', 'Herbivore': 'yellow', 'NoneType': 'white'}
 
     game = Simulation()
     game.start_simulation()
-    update()
-    window.mainloop()
 
 
