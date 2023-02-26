@@ -1,6 +1,6 @@
 import time
 from random import randint, choice
-from os import system as os
+from os import listdir
 from platform import system as platform
 from time import sleep
 
@@ -16,13 +16,13 @@ class Simulation:
 
     def __init__ (self, gameparams):
         self.worldmap = Simulation.Map(gameparams.mapwidth, gameparams.mapheight, gameparams.entities)
-        self.renderer = Simulation.Renderer()
         self.counter = Simulation.Counter()
         self.actions = Actions()
         self.gameparams = gameparams
         self.endgame = False
         self.on_pause = True
         self.sim_window = self.create_window()
+        self.renderer = Simulation.Renderer()
 
     def create_window(self):
         self.buttonsdict = {}
@@ -44,9 +44,11 @@ class Simulation:
             row += 1
 
     def create_stats_display(self, screen):
+
         statsframe = ttk.Frame(screen,padding= 10)
         statsframe.grid(column=0, row=1)
-        stats = ttk.Label(statsframe, text="Stats")
+        stats = ttk.Label(statsframe, text='Stats')
+
         stats.grid(column=0, row=0)
 
 
@@ -104,28 +106,37 @@ class Simulation:
         colordict = {'NoneType':'white', 'Grass':'green', 'Obstacle':'black',
                      'Water':'blue', 'Herbivore':'yellow', 'Predator':'red'}
         widgetsdict = {}
+
+
         def __init__(self, *args) -> None:
-            pass
+            self.imagedict = self.load_images()
 
 
+        def load_images(self):
+            imagedict = {}
+            imagefilenames = listdir('./images/')
+            for filename in imagefilenames:
+                imagedict.update({filename[:-5]: PhotoImage(file=f'images/{filename}')})
+            return imagedict
 
         def render_gui_initial(self, worldmap, screen):
             mainframe = ttk.Frame(screen, padding=30)
             mainframe.grid(column=0, row=0)
 
             for width in range(worldmap.mapwidth):
-                for height in range(worldmap.mapheight):
+              for height in range(worldmap.mapheight):
 
                     obj = worldmap.worldpopulation[(width, height)]
-                    widget = ttk.Label(mainframe, background=self.colordict[obj.__class__.__name__], text='   ')
+                    widget = ttk.Label(mainframe, padding=0, image=self.imagedict.get(obj.__class__.__name__))
                     widget.grid(column=width, row=height)
                     self.widgetsdict.update({(width, height): widget})
 
         def render_gui_update(self, worldmap):
+
             for i in range(len(worldmap.cells_to_redraw)):
                 width, height = worldmap.cells_to_redraw.pop()
                 obj = worldmap.worldpopulation[(width, height)]
-                self.widgetsdict[(width, height)].configure(background=self.colordict[obj.__class__.__name__])
+                self.widgetsdict[(width, height)].configure(image=self.imagedict.get(obj.__class__.__name__))
 
 
     def start_simulation(self):
@@ -148,7 +159,7 @@ class Simulation:
                 for action in turnactions:
                     action(gameparams, self.worldmap)
                 self.renderer.render_gui_update(self.worldmap)
-                time.sleep(1)
+                time.sleep(.3)
 
             self.sim_window.update()
 
