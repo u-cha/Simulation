@@ -1,3 +1,4 @@
+import time
 from random import randint, choice
 from os import system as os
 from platform import system as platform
@@ -19,10 +20,49 @@ class Simulation:
         self.counter = Simulation.Counter()
         self.actions = Actions()
         self.gameparams = gameparams
+        self.endgame = False
         self.on_pause = True
+        self.sim_window = self.create_window()
+
+    def create_window(self):
+        self.buttonsdict = {}
+        sim_window = Tk()
+        sim_window.title('Simulation2')
+        self.create_buttons(sim_window)
+        self.create_stats_display(sim_window)
+        return sim_window
+
+    def create_buttons(self, screen):
+        buttons = {'Start':self.trigger_pause, 'Exit':self.exit}
+        row = 2
+        for name, function in buttons.items():
+            buttonframe = ttk.Frame(screen, padding=10)
+            buttonframe.grid(column=0, row=row)
+            button = ttk.Button(buttonframe, name=name.lower(), text=name, command=function)
+            button.grid(column=0, row=0)
+            self.buttonsdict.update({f'{name}':button})
+            row += 1
+
+    def create_stats_display(self, screen):
+        statsframe = ttk.Frame(screen,padding= 10)
+        statsframe.grid(column=0, row=1)
+        stats = ttk.Label(statsframe, text="Stats")
+        stats.grid(column=0, row=0)
 
 
+    def trigger_pause(self):
+        button = self.buttonsdict['Start']
+        if self.on_pause:
+            self.on_pause = False
+            button.configure(text='Pause')
+        else:
+            self.on_pause = True
+            button.configure(text='Resume')
 
+    def exit(self):
+        self.endgame = True
+        self.sim_window.destroy()
+        exit()
 
     class Map:
 
@@ -65,76 +105,26 @@ class Simulation:
                      'Water':'blue', 'Herbivore':'yellow', 'Predator':'red'}
         widgetsdict = {}
         def __init__(self, *args) -> None:
-            self.window = Tk()
-            self.window.title('Simulation')
-            self.pause_button = self.create_pause_button()
-            self.finish_button = self.create_finish_button()
-            self.on_pause = True
+            pass
 
-        # def render(self, map, gameparams):
-        #     clear = lambda: os('cls') if platform() == 'Windows' else os('clear')
-        #     clear()
-        #     for width in range(map.mapwidth):
-        #         for height in range(map.mapheight):
-        #             image = map.worldpopulation.get((width, height))
-        #             print('\033[;;47m  \033[0;0;m' if image is None else image, end='')
-        #         print()
-        #
-        #     print('\n' * 3)
-        #
-        #     for entityname in gameparams.entities.keys():
-        #         num = getattr(map, f'count_entities.{entityname}')
-        #         print(f'{entityname}: {num}')
-        #     print(f'COUNTER: {game.counter.counter_current_state}')
 
-        def create_pause_button(self):
-            buttonframe = ttk.Frame(self.window, padding=10)
-            buttonframe.grid(column=0, row=1)
-            button = ttk.Button(buttonframe, text='Start', command=self.trigger_pause)
-            button.grid(column=0, row=0)
-            return button
 
-        def create_finish_button(self):
-            buttonframe = ttk.Frame(self.window, padding=10)
-            buttonframe.grid(column=0, row=3)
-            button = ttk.Button(buttonframe, text='Exit', command=self.exit)
-            button.grid(column=0, row=0)
-            return button
-
-        def exit(self):
-            self.window.destroy()
-            exit()
-        def trigger_pause(self):
-            if self.on_pause:
-                self.on_pause = False
-                self.pause_button.configure(text='Pause')
-            else:
-                self.on_pause = True
-                self.pause_button.configure(text='Resume')
-
-        def update(self):
-
-            game.make_a_turn()
-            self.window.update()
-            self.window.after(500, self.update)
-
-        def render_gui_initial(self, map, gameparams):
-            mainframe = ttk.Frame(self.window, padding=30)
+        def render_gui_initial(self, worldmap, screen):
+            mainframe = ttk.Frame(screen, padding=30)
             mainframe.grid(column=0, row=0)
 
-            for width in range(map.mapwidth):
-                for height in range(map.mapheight):
+            for width in range(worldmap.mapwidth):
+                for height in range(worldmap.mapheight):
 
-                    obj = map.worldpopulation[(width, height)]
+                    obj = worldmap.worldpopulation[(width, height)]
                     widget = ttk.Label(mainframe, background=self.colordict[obj.__class__.__name__], text='   ')
                     widget.grid(column=width, row=height)
                     self.widgetsdict.update({(width, height): widget})
-            self.update()
-            self.window.mainloop()
-        def render_gui_update(self, map, gameparams):
-            for i in range(len(map.cells_to_redraw)):
-                width, height = map.cells_to_redraw.pop()
-                obj = map.worldpopulation[(width, height)]
+
+        def render_gui_update(self, worldmap):
+            for i in range(len(worldmap.cells_to_redraw)):
+                width, height = worldmap.cells_to_redraw.pop()
+                obj = worldmap.worldpopulation[(width, height)]
                 self.widgetsdict[(width, height)].configure(background=self.colordict[obj.__class__.__name__])
 
 
@@ -143,23 +133,25 @@ class Simulation:
         start_actions = [getattr(self.actions.initactions, action) for action in self.actions.initactionslist]
         for action in start_actions:
             action(gameparams, self.worldmap)
-        self.renderer.render_gui_initial(self.worldmap, self.gameparams)
+        self.renderer.render_gui_initial(self.worldmap, self.sim_window)
         self.make_a_turn()
-
+        self.sim_window.mainloop()
 
 
     def make_a_turn(self):
         """nextTurn() - просимулировать и отрендерить один ход"""
+        while True:
+            if self.endgame:
+                break
+            if not self.on_pause:
+                turnactions = [getattr(self.actions.turnactions, action) for action in self.actions.turnactionsdict]
+                for action in turnactions:
+                    action(gameparams, self.worldmap)
+                self.renderer.render_gui_update(self.worldmap)
+                time.sleep(1)
 
-        turnactions = [getattr(self.actions.turnactions, action) for action in self.actions.turnactionsdict]
-        for action in turnactions:
-            action(gameparams, self.worldmap)
-        self.renderer.render_gui_update(game.worldmap, gameparams)
+            self.sim_window.update()
 
-
-    def pause_simulation(self):
-
-            pass
 
 if __name__ == '__main__':
 
