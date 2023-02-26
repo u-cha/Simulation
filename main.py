@@ -2,9 +2,7 @@ from random import randint, choice
 from os import system as os
 from platform import system as platform
 from time import sleep
-import threading
 
-import keyboard
 
 from tkinter import *
 from tkinter import ttk
@@ -15,11 +13,12 @@ from actions import Actions
 
 class Simulation:
 
-    def __init__ (self, *args, **kwargs):
+    def __init__ (self, gameparams):
         self.worldmap = Simulation.Map(gameparams.mapwidth, gameparams.mapheight, gameparams.entities)
         self.renderer = Simulation.Renderer()
         self.counter = Simulation.Counter()
         self.actions = Actions()
+        self.gameparams = gameparams
         self.on_pause = True
 
 
@@ -68,6 +67,9 @@ class Simulation:
         def __init__(self, *args) -> None:
             self.window = Tk()
             self.window.title('Simulation')
+            self.pause_button = self.create_pause_button()
+            self.finish_button = self.create_finish_button()
+            self.on_pause = True
 
         # def render(self, map, gameparams):
         #     clear = lambda: os('cls') if platform() == 'Windows' else os('clear')
@@ -85,9 +87,34 @@ class Simulation:
         #         print(f'{entityname}: {num}')
         #     print(f'COUNTER: {game.counter.counter_current_state}')
 
+        def create_pause_button(self):
+            buttonframe = ttk.Frame(self.window, padding=10)
+            buttonframe.grid(column=0, row=1)
+            button = ttk.Button(buttonframe, text='Start', command=self.trigger_pause)
+            button.grid(column=0, row=0)
+            return button
+
+        def create_finish_button(self):
+            buttonframe = ttk.Frame(self.window, padding=10)
+            buttonframe.grid(column=0, row=3)
+            button = ttk.Button(buttonframe, text='Exit', command=self.exit)
+            button.grid(column=0, row=0)
+            return button
+
+        def exit(self):
+            self.window.destroy()
+            exit()
+        def trigger_pause(self):
+            if self.on_pause:
+                self.on_pause = False
+                self.pause_button.configure(text='Pause')
+            else:
+                self.on_pause = True
+                self.pause_button.configure(text='Resume')
+
         def update(self):
 
-            # game.make_a_turn()
+            game.make_a_turn()
             self.window.update()
             self.window.after(500, self.update)
 
@@ -102,10 +129,6 @@ class Simulation:
                     widget = ttk.Label(mainframe, background=self.colordict[obj.__class__.__name__], text='   ')
                     widget.grid(column=width, row=height)
                     self.widgetsdict.update({(width, height): widget})
-
-            buttonframe = ttk.Frame(self.window, padding=30)
-            buttonframe.grid(column=0, row=1)
-            button = ttk.Button(buttonframe, text='Play', command=game.make_a_turn).grid(column=gameparams.mapwidth//2,row=0)
             self.update()
             self.window.mainloop()
         def render_gui_update(self, map, gameparams):
@@ -120,17 +143,19 @@ class Simulation:
         start_actions = [getattr(self.actions.initactions, action) for action in self.actions.initactionslist]
         for action in start_actions:
             action(gameparams, self.worldmap)
-        self.renderer.render_gui_initial(game.worldmap, gameparams)
-        if not self.on_pause:
-            self.make_a_turn()
+        self.renderer.render_gui_initial(self.worldmap, self.gameparams)
+        self.make_a_turn()
+
 
 
     def make_a_turn(self):
         """nextTurn() - просимулировать и отрендерить один ход"""
+
         turnactions = [getattr(self.actions.turnactions, action) for action in self.actions.turnactionsdict]
         for action in turnactions:
             action(gameparams, self.worldmap)
         self.renderer.render_gui_update(game.worldmap, gameparams)
+
 
     def pause_simulation(self):
 
@@ -138,7 +163,7 @@ class Simulation:
 
 if __name__ == '__main__':
 
-    game = Simulation()
+    game = Simulation(gameparams)
     game.start_simulation()
 
 
