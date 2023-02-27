@@ -1,11 +1,11 @@
 class GameParameters:
     """This class defines the simulation parameters"""
-    mapwidth = 30
+    mapwidth = 15
     mapheight = 15
     maparea = mapwidth * mapheight
     #speed parameter sets the delay between sim turns in seconds
     #the lower is the value the faster is the game
-    speed = .3
+    speed = .5
 
     # is used to regulate map population
     entities = {'Water': int(0.05 * maparea), 'Grass': int(0.1 * maparea), 'Obstacle': int(0.1 * maparea),

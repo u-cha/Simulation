@@ -9,9 +9,9 @@ class Actions:
     def __init__(self):
         self.initactions = InitActions()
         self.turnactions = TurnActions()
-        self.initactionslist = ['inhabit_map', 'update_map_stats']
+        self.initactionslist = ['inhabit_map']
         self.turnactionsdict = ['entity_make_move', 'entity_update_self_status',
-                                'clear_redundant_entities', 'spawn_new_entities', 'update_map_stats']
+                                'clear_redundant_entities', 'spawn_new_entities']
 
 
 class InitActions(Actions):
@@ -44,15 +44,6 @@ class InitActions(Actions):
     def inhabit_map(self, entitiesdic, worldmap):
         entitieslist = self.create_entities(entitiesdic)
         self.place_entities_on_map(worldmap, entitieslist)
-
-    def update_map_stats(self, gameparams, worldmap):
-        for entityname in gameparams.entities.keys():
-            count_entities = 0
-            for cell in worldmap.worldpopulation:
-                if worldmap.worldpopulation[cell].__class__.__name__ == entityname:
-                    count_entities += 1
-            setattr(worldmap, f'count_entities.{entityname}', count_entities)
-
 
 class TurnActions(Actions):
 
@@ -123,19 +114,3 @@ class TurnActions(Actions):
                 if worldmap.worldpopulation[cell].__class__.__name__ == entityname:
                     count_entities += 1
             setattr(worldmap, f'count_entities.{entityname}', count_entities)
-
-
-"""действия, совершаемые каждый ход. Примеры - передвижение существ,
-добавить травы или травоядных, если их осталось слишком мало"""
-pass
-
-"""
-Поиск пути
-Советую писать алгоритм поиска пути полностью с нуля, 
-используя в качестве источника описание алгоритма на википедии. 
-Проще всего начать с алгоритма поиска в ширину. 
-Он относительно простой в реализации, 
-но может работать медленно на больших полях, 
-для которых лучше подойдет алгоритм [A](https://ru.wikipedia.org/wiki/A).
-
-"""
