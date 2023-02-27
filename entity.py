@@ -13,14 +13,8 @@ class Entity:
             setattr(self, '_role', entityrole)
             for attribute in self.collection[entityrole]:
                 setattr(self, attribute, self.collection[entityrole][attribute])
-            if getattr(self, '_maxhp', None):
-                self._hp = self._maxhp
-            else:
-                self._hp = 0000
+            self._hp = getattr(self, '_maxhp', 0)
 
-    def __repr__(self):
-        if getattr(self, '_role', None):
-            return f'{self._role[:2]}'
 
     def entity_update_self_status(self):
         if hasattr(self, '_food_value') and self._food_value == 0 and self._hp == 0:
@@ -66,10 +60,6 @@ class Obstacle(Entity):
     def make_move(self, *args):
         pass
 
-    def __repr__(self):
-        if getattr(self, '_role', None):
-            return f'\033[3;36;40m  \033[0;0;0m'
-
 
 class Water(Entity):
     collection = {'Water': {'_food_value': 100}}
@@ -79,9 +69,6 @@ class Water(Entity):
 
     def make_move(self, *args):
         pass
-
-    def __repr__(self):
-        return f'\033[3;36;44m  \033[0;0;0m'
 
 
 class Grass(Entity):
@@ -94,10 +81,6 @@ class Grass(Entity):
     def make_move(self, *args):
         if self._food_value < self._max_food_value:
             self._food_value += self._growthtempo
-
-    def __repr__(self):
-        return f'\033[3;36;42m  \033[0;0;0m'
-
 
 class Creature(Entity):
 
@@ -228,9 +211,6 @@ class Herbivore(Creature):
         super().__init__()
         self._hp = self._maxhp
 
-    def __repr__(self):
-        if getattr(self, '_role', None):
-            return f'\033[3;36;43m{self._role[:2]}\033[0;0;0m'
 
     def consume(self, target_cell, worldmap):
         target = worldmap.worldpopulation[target_cell]
@@ -265,11 +245,6 @@ class Predator(Creature):
         if target._hp <= 0:
             target.creature_state._is_alive = 0
 
-    def __repr__(self):
-        if getattr(self, '_role', None):
-            if self.creature_state._is_hungry:
-                return f'\033[1;41;31m{self._role[:2]}\033[0;0;0m'
-            return f'\033[2;41;37m  \033[0;0;0m'
 
     def consume(self, target_cell, worldmap):
         target = worldmap.worldpopulation[target_cell]

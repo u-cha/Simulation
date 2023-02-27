@@ -12,11 +12,11 @@ from actions import Actions
 class Simulation:
 
     def __init__(self, gameparams):
-        self.worldmap = Simulation.Map(gameparams.mapwidth, gameparams.mapheight, gameparams.entities)
+        self.worldmap = Simulation.Map(gameparams.mapwidth, gameparams.mapheight,
+                                       gameparams.entities)
         self.counter = Simulation.Counter()
         self.stats =None
         self.actions = Actions()
-        self.gameparams = gameparams
         self.endgame = False
         self.on_pause = True
         self.sim_window = self.create_window()
@@ -157,7 +157,7 @@ class Simulation:
                 self.counter.make_one_tick()
                 self.stats = self.calculate_stats()
                 self.renderer.render_gui_update(self.worldmap, self.stats)
-                time.sleep(.3)
+                time.sleep(gameparams.speed)
 
             self.sim_window.update()
 
