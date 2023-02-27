@@ -1,4 +1,4 @@
-from random import randint, choice
+from random import choice
 from gameparameters import GameParameters as gameparams
 from creature_state import CreatureState
 
@@ -26,13 +26,7 @@ class Entity:
         if hasattr(self, '_food_value') and self._food_value == 0 and self._hp == 0:
             self._is_to_be_deleted = 1
 
-
-
-    def _find_adjacent_cells(self, coordinates: tuple = None,  searchradius=1, *args):
-        """This function looks for adjacent cells, starting from the position of self or (if given)
-        starting from the coordinates position.
-        Basically it returns adjacent cells within 1 cell radius, but this can be changed
-        if another radius is provided"""
+    def _find_adjacent_cells(self, coordinates: tuple = None, searchradius=1, *args):
 
         if coordinates:
             width_pos, height_pos = coordinates[0], coordinates[1]
@@ -69,13 +63,13 @@ class Obstacle(Entity):
     def __init__(self):
         super().__init__()
 
-
     def make_move(self, *args):
         pass
 
     def __repr__(self):
         if getattr(self, '_role', None):
             return f'\033[3;36;40m  \033[0;0;0m'
+
 
 class Water(Entity):
     collection = {'Water': {'_food_value': 100}}
@@ -104,6 +98,7 @@ class Grass(Entity):
     def __repr__(self):
         return f'\033[3;36;42m  \033[0;0;0m'
 
+
 class Creature(Entity):
 
     def __init__(self, *args, **kwargs):
@@ -120,7 +115,6 @@ class Creature(Entity):
     def __die(self):
         self.is_alive = 0
 
-
     def make_move(self, worldmap):
         if not self.creature_state._is_alive or self.creature_state._is_under_attack:
             pass
@@ -132,7 +126,6 @@ class Creature(Entity):
                 if self.creature_state.hungertimer.timer == 10:
                     self.creature_state._is_hungry = 1
                 self._make_free_move(worldmap)
-
 
     def _make_free_move(self, worldmap):
         free_adjacent_cells = self._filter_empty_cells(self._find_adjacent_cells(), worldmap)
@@ -147,7 +140,6 @@ class Creature(Entity):
             worldmap.cells_to_redraw.append((self.width, self.height))
             self.width, self.height = next_cell
 
-
     def _make_foodhunt_move(self, worldmap):
         target_cell = self._find_cell_with_food(worldmap)
         if target_cell:
@@ -155,7 +147,7 @@ class Creature(Entity):
                 target = worldmap.worldpopulation[target_cell]
                 if hasattr(target, 'creature_state') and target.creature_state._is_alive == 1:
                     self.attack(target_cell, worldmap)
-                elif hasattr(target, 'creature_state') and target.creature_state._is_alive ==0:
+                elif hasattr(target, 'creature_state') and target.creature_state._is_alive == 0:
                     self.consume(target_cell, worldmap)
                 else:
                     self.consume(target_cell, worldmap)
@@ -170,7 +162,6 @@ class Creature(Entity):
         else:
             self._make_free_move(worldmap)
 
-
     def _find_cell_with_food(self, worldmap):
         for search_radius in range(1, self._vision_radius + 1):
             current_search_scope = self._find_adjacent_cells(searchradius=search_radius)
@@ -179,7 +170,6 @@ class Creature(Entity):
                     return cell
         else:
             return None
-
 
     def _find_next_cell_using_bfs(self, targetcell, worldmap):
         start_cell = parent_cell = self.width, self.height
@@ -206,8 +196,9 @@ class Creature(Entity):
                     filtered_adjacent_cells = self._filter_empty_cells(adjacent_cells, worldmap)
                     new_cells_to_visit = list(
                         filter(lambda x: x not in visited_cells and x not in search_queue, filtered_adjacent_cells))
-                    new_search_scope.update({new_cell: {'distance_from_start': distance, 'parent': parent_cell} for new_cell in
-                                             new_cells_to_visit})
+                    new_search_scope.update(
+                        {new_cell: {'distance_from_start': distance, 'parent': parent_cell} for new_cell in
+                         new_cells_to_visit})
                 search_queue.clear()
                 search_queue.update(new_search_scope)
 
@@ -226,9 +217,6 @@ class Creature(Entity):
 
 
 class Herbivore(Creature):
-    """Стремятся найти ресурс (траву),
-     может потратить свой ход на движение в сторону травы, либо на её поглощение."""
-
     collection = {'Horse':
                       {'_speed': 3, '_maxhp': 100, '_vision_radius': 10,
                        '_food_value': 10, '_food_type': 'Grass'},
@@ -253,21 +241,11 @@ class Herbivore(Creature):
             target._food_value = 0
             target._is_to_be_deleted = 1
 
-
         if self._hp < self._maxhp:
             self._hp += 1
 
 
-
-
 class Predator(Creature):
-    """
-    На что может потратить ход хищник:
-
-    Переместиться (чтобы приблизиться к жертве - травоядному)
-    Атаковать травоядное. При этом количество HP травоядного уменьшается на силу атаки хищника.
-    Если значение HP жертвы опускается до 0, травоядное исчезает
-    """
     collection = {'Tiger':
                       {'_speed': 6, '_maxhp': 500, '_attack_power': 10,
                        '_vision_radius': 10, '_food_value': 10, '_food_type': 'Herbivore'},
@@ -278,25 +256,23 @@ class Predator(Creature):
     def __init__(self):
         super().__init__()
 
-
     def attack(self, target_cell, worldmap):
         target = worldmap.worldpopulation[target_cell]
         if not target.creature_state._is_under_attack:
             target.creature_state._is_under_attack = 1
         if target._hp > 0:
             target._hp -= self._attack_power
-        if target._hp<= 0:
+        if target._hp <= 0:
             target.creature_state._is_alive = 0
-
 
     def __repr__(self):
         if getattr(self, '_role', None):
             if self.creature_state._is_hungry:
                 return f'\033[1;41;31m{self._role[:2]}\033[0;0;0m'
             return f'\033[2;41;37m  \033[0;0;0m'
+
     def consume(self, target_cell, worldmap):
         target = worldmap.worldpopulation[target_cell]
         target._food_value = 0
         self.creature_state._is_hungry = 0
         self.creature_state.hungertimer.timer = 0
-

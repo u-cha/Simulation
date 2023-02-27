@@ -1,4 +1,5 @@
-from random import randint, choice
+from random import randint
+
 from gameparameters import GameParameters as gameparams
 import entity
 
@@ -45,12 +46,13 @@ class InitActions(Actions):
         self.place_entities_on_map(worldmap, entitieslist)
 
     def update_map_stats(self, gameparams, worldmap):
-         for entityname in gameparams.entities.keys():
+        for entityname in gameparams.entities.keys():
             count_entities = 0
             for cell in worldmap.worldpopulation:
                 if worldmap.worldpopulation[cell].__class__.__name__ == entityname:
                     count_entities += 1
             setattr(worldmap, f'count_entities.{entityname}', count_entities)
+
 
 class TurnActions(Actions):
 
@@ -68,7 +70,7 @@ class TurnActions(Actions):
         populated_coords = list(filter(lambda x: worldmap.worldpopulation[x] is not None, worldmap.worldpopulation))
         return populated_coords
 
-    def entity_update_self_status(self, gameprams, worldmap):
+    def entity_update_self_status(self, gameparams, worldmap):
         for cell, entity in worldmap.worldpopulation.items():
             if entity != None:
                 entity.entity_update_self_status()
@@ -115,12 +117,13 @@ class TurnActions(Actions):
         return width, height
 
     def update_map_stats(self, gameparams, worldmap):
-         for entityname in gameparams.entities.keys():
+        for entityname in gameparams.entities.keys():
             count_entities = 0
             for cell in worldmap.worldpopulation:
                 if worldmap.worldpopulation[cell].__class__.__name__ == entityname:
                     count_entities += 1
             setattr(worldmap, f'count_entities.{entityname}', count_entities)
+
 
 """действия, совершаемые каждый ход. Примеры - передвижение существ,
 добавить травы или травоядных, если их осталось слишком мало"""

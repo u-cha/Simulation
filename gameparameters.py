@@ -1,4 +1,5 @@
 class GameParameters:
+    """This class defines the simulation parameters"""
     mapwidth = 30
     mapheight = 15
     maparea = mapwidth * mapheight
@@ -9,6 +10,5 @@ class GameParameters:
 
     # is used to trigger map refill
     entities_min_threshold = {'Grass': int(entities['Grass'] * 0.5),
-                              'Herbivore': int(entities['Herbivore'] * 1),
+                              'Herbivore': int(entities['Herbivore'] * 0.5),
                               'Predator': int(entities['Predator'] * 0.5)}
-

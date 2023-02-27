@@ -16,10 +16,3 @@ class HungerTimer:
     def tick(self):
         if self.timer < 10:
             self.timer += 1
-
-
-
-
-
-
-
